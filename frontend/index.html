@@ -3,9 +3,312 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Advanced Media Watermarking System</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .drag-drop-zone {
+            border: 2px dashed #cbd5e0;
+            transition: all 0.3s ease;
+        }
+        .drag-drop-zone.dragging {
+            border-color: #4299e1;
+            background-color: #ebf8ff;
+        }
+        .progress-bar {
+            transition: width 0.3s ease;
+        }
+        .loading-spinner {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
 </head>
-<body>
-    
-</body>
-</html>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 py-3">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center">
+                    <i class="fas fa-fingerprint text-blue-500 text-2xl mr-2"></i>
+                    <span class="text-xl font-bold text-gray-800">Media Watermarking System</span>
+                </div>
+                <div id="systemStatus" class="flex items-center">
+                    <span class="text-sm text-gray-600 mr-2">System Status:</span>
+                    <span class="flex h-3 w-3">
+                        <span class="animate-ping absolute inline-flex h-3 w-3 rounded-full bg-green-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto p-6">
+        <!-- Tabs -->
+        <div class="mb-6 border-b border-gray-200">
+            <ul class="flex flex-wrap -mb-px text-sm font-medium text-center text-gray-500">
+                <li class="mr-2">
+                    <a href="#" class="tab-link inline-flex items-center p-4 border-b-2 border-blue-500 text-blue-500 active" 
+                       data-tab="upload">
+                        <i class="fas fa-upload mr-2"></i>
+                        Upload & Watermark
+                    </a>
+                </li>
+                <li class="mr-2">
+                    <a href="#" class="tab-link inline-flex items-center p-4 border-b-2 border-transparent hover:border-gray-300" 
+                       data-tab="check">
+                        <i class="fas fa-search mr-2"></i>
+                        Check Watermark
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Upload Tab -->
+        <div id="uploadTab" class="tab-content">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <form id="uploadForm" class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <i class="fas fa-envelope text-gray-400"></i>
+                                </div>
+                                <input type="email" id="email" name="email" required
+                                       class="pl-10 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Watermark Text</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <i class="fas fa-signature text-gray-400"></i>
+                                </div>
+                                <input type="text" id="watermarkText" name="watermark_text" required
+                                       class="pl-10 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="drag-drop-zone rounded-lg p-8 text-center" id="dropZone">
+                        <input type="file" id="file" name="file" required class="hidden" 
+                               accept=".png,.jpg,.jpeg,.mp4,.avi,.mov,.wav,.mp3">
+                        <div class="space-y-4">
+                            <i class="fas fa-cloud-upload-alt text-4xl text-gray-400"></i>
+                            <div class="text-gray-600">
+                                Drag and drop your file here, or
+                                <button type="button" id="browseButton" 
+                                        class="text-blue-500 hover:text-blue-600 font-medium">
+                                    browse
+                                </button>
+                            </div>
+                            <div class="text-sm text-gray-500">
+                                Supported formats: PNG, JPG, MP4, AVI, MOV, WAV, MP3
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="filePreview" class="hidden">
+                        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                            <div class="flex items-center">
+                                <i class="fas fa-file-alt text-gray-400 text-2xl mr-3"></i>
+                                <div>
+                                    <div id="fileName" class="font-medium"></div>
+                                    <div id="fileSize" class="text-sm text-gray-500"></div>
+                                </div>
+                            </div>
+                            <button type="button" id="removeFile" class="text-red-500 hover:text-red-600">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="uploadProgress" class="hidden">
+                        <div class="bg-gray-200 rounded-full h-2 overflow-hidden">
+                            <div class="progress-bar bg-blue-500 h-full w-0"></div>
+                        </div>
+                        <div class="text-sm text-gray-600 mt-2 text-center">
+                            Processing... <span id="progressText">0%</span>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        <i class="fas fa-upload mr-2"></i>
+                        Upload and Watermark
+                    </button>
+                </form>
+
+                <div id="uploadResult" class="hidden mt-6 p-4 rounded-lg"></div>
+            </div>
+        </div>
+
+        <!-- Check Watermark Tab -->
+        <div id="checkTab" class="tab-content hidden">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <form id="checkForm" class="space-y-6">
+                    <div class="drag-drop-zone rounded-lg p-8 text-center" id="checkDropZone">
+                        <input type="file" id="checkFile" name="file" required class="hidden" 
+                               accept=".png,.jpg,.jpeg,.mp4,.avi,.mov,.wav,.mp3">
+                        <div class="space-y-4">
+                            <i class="fas fa-search text-4xl text-gray-400"></i>
+                            <div class="text-gray-600">
+                                Drag and drop file to check watermark, or
+                                <button type="button" id="checkBrowseButton" 
+                                        class="text-blue-500 hover:text-blue-600 font-medium">
+                                    browse
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="checkFilePreview" class="hidden">
+                        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                            <div class="flex items-center">
+                                <i class="fas fa-file-alt text-gray-400 text-2xl mr-3"></i>
+                                <div>
+                                    <div id="checkFileName" class="font-medium"></div>
+                                    <div id="checkFileSize" class="text-sm text-gray-500"></div>
+                                </div>
+                            </div>
+                            <button type="button" id="checkRemoveFile" class="text-red-500 hover:text-red-600">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-500 hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                        <i class="fas fa-search mr-2"></i>
+                        Check Watermark
+                    </button>
+                </form>
+
+                <div id="checkResult" class="hidden mt-6 p-4 rounded-lg"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast Notifications -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 space-y-2"></div>
+
+    <script>
+        // Tab switching
+        document.querySelectorAll('.tab-link').forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                e.preventDefault();
+                const targetTab = tab.dataset.tab;
+                
+                // Update tab styles
+                document.querySelectorAll('.tab-link').forEach(t => {
+                    t.classList.remove('border-blue-500', 'text-blue-500');
+                    t.classList.add('border-transparent');
+                });
+                tab.classList.add('border-blue-500', 'text-blue-500');
+                
+                // Show/hide content
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.add('hidden');
+                });
+                document.getElementById(`${targetTab}Tab`).classList.remove('hidden');
+            });
+        });
+
+        // File drag and drop handling
+        function setupDragDrop(dropZone, fileInput, previewContainer, fileNameElement, fileSizeElement) {
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('dragging');
+            });
+
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('dragging');
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('dragging');
+                const file = e.dataTransfer.files[0];
+                handleFileSelection(file, previewContainer, fileNameElement, fileSizeElement);
+            });
+
+            fileInput.addEventListener('change', () => {
+                const file = fileInput.files[0];
+                handleFileSelection(file, previewContainer, fileNameElement, fileSizeElement);
+            });
+        }
+
+        function handleFileSelection(file, previewContainer, fileNameElement, fileSizeElement) {
+            if (file) {
+                fileNameElement.textContent = file.name;
+                fileSizeElement.textContent = formatFileSize(file.size);
+                previewContainer.classList.remove('hidden');
+            }
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `px-4 py-3 rounded-lg shadow-lg text-white ${
+                type === 'success' ? 'bg-green-500' : 'bg-red-500'
+            }`;
+            toast.textContent = message;
+            document.getElementById('toastContainer').appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        // Setup form handling
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const progressBar = document.querySelector('.progress-bar');
+            const progressText = document.getElementById('progressText');
+            
+            document.getElementById('uploadProgress').classList.remove('hidden');
+            
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData,
+                    onUploadProgress: (progressEvent) => {
+                        const progress = (progressEvent.loaded / progressEvent.total) * 100;
+                        progressBar.style.width = `${progress}%`;
+                        progressText.textContent = `${Math.round(progress)}%`;
+                    }
+                });
+                
+                const result = await response.json();
+                if (response.ok) {
+                    showToast('File uploaded and watermarked successfully!');
+                    const resultDiv = document.getElementById('uploadResult');
+                    resultDiv.innerHTML = `
+                        <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                            <h3 class="text-green-800 font-medium">Success!</h3>
+                            <p class="text-green-700 mt-2">Media ID: ${result.media_id}</p>
+                            <p class="text-green-700">Output Path: ${result.output_path}</p>
+                        </div>
+                    `;
+                    resultDiv.classList.remove('hidden');
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                showToast(error.message, 'error');
+            } finally {
+                document.getElementById('uploadProgress').classList.add('hidden');
+            }
+        });
+
+        document.getElementById('checkForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const
