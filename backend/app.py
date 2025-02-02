@@ -9,7 +9,6 @@ from utils import log_request  # Importing the log_request function from utils.p
 
 app = Flask(__name__)
 CORS(app)
-app.config['UPLOAD_FOLDER'] = 'uploads/'
 
 # Add MongoDB connection with error handling
 try:
